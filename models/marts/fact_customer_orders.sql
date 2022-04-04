@@ -70,13 +70,13 @@ final as (
     select
     paid_orders.*,
     ROW_NUMBER() OVER (order by paid_orders.order_id) as transaction_seq,
-    ROW_NUMBER() OVER (partition by customer_id order by paid_orders.order_id) as customer_sales_seq,
+    ROW_NUMBER() OVER (partition by customer_orders.customer_id order by paid_orders.order_id) as customer_sales_seq,
     case when customer_orders.first_order_date = paid_orders.order_placed_at
             THEN 'new'
             ELSE 'return' 
     end as nvsr,
     sum(total_amount_paid) over (partition by paid_orders.customer_id order by paid_orders.order_placed_at) as customer_lifetime_value,
-    c.first_order_date as fdos
+    customer_orders.first_order_date as fdos
     from paid_orders
     left join customer_orders
         on paid_orders.customer_id = customer_orders.customer_id
