@@ -76,8 +76,6 @@ final as (
             THEN 'new'
             ELSE 'return' 
     end as nvsr,
-    
-    
     sum(total_amount_paid) over (partition by paid_orders.customer_id order by paid_orders.order_placed_at) as customer_lifetime_value,
     c.first_order_date as fdos
     from paid_orders p
