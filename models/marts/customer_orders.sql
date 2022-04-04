@@ -1,5 +1,26 @@
 with 
 
+orders as (
+
+    select *
+    from {{ source('jaffle_shop', 'orders') }} 
+
+),
+
+customers as (
+
+    select *
+    from {{ source('jaffle_shop', 'customers') }}
+
+),
+
+payments as (
+
+    select *
+    from {{ source('stripe', 'payment') }}
+
+),
+
 paid_orders as (
     
     select 
@@ -11,20 +32,20 @@ paid_orders as (
       p.payment_finalized_date,
       C.FIRST_NAME      as customer_first_name,
       C.LasT_NAME       as customer_last_name
-    from {{ source('jaffle_shop', 'orders') }} as Orders
+    from orders
 
     left join ( 
         select 
           ORDERID as order_id, 
           max(CREATED) as payment_finalized_date, 
           sum(AMOUNT) / 100.0 as total_amount_paid
-        from {{ source('stripe', 'payment') }}
+        from payments
         where status <> 'fail'
         group by 1
     ) p 
         on orders.ID = p.order_id
 
-    left join {{ source('jaffle_shop', 'customers') }} C 
+    left join customers C 
         on orders.USER_ID = C.ID 
 
 ),
@@ -35,8 +56,8 @@ customer_orders as (
       min(ORDER_DATE) as first_order_date,
       max(ORDER_DATE) as most_recent_order_date,
       count(ORDERS.ID) as number_of_orders
-    from {{ source('jaffle_shop', 'customers') }} C 
-    left join {{ source('jaffle_shop', 'orders') }} as Orders
+    from customers C 
+    left join orders
         on orders.USER_ID = C.ID 
     group by 1
 )
