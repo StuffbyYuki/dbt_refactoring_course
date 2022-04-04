@@ -31,7 +31,7 @@ complete_payments as (
     where status <> 'fail'
     group by 1
 
-)
+),
 
 paid_orders as (
     
