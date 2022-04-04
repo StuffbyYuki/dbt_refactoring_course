@@ -36,50 +36,50 @@ complete_payments as (
 paid_orders as (
     
     select 
-      Orders.ID         as order_id,
-      Orders.USER_ID    as customer_id,
-      Orders.ORDER_DATE as order_placed_at,
-      Orders.status     as order_status,
-      p.total_amount_paid,
-      p.payment_finalized_date,
-      C.FIRST_NAME      as customer_first_name,
-      C.LasT_NAME       as customer_last_name
+      Orders.ID                 as order_id,
+      Orders.USER_ID            as customer_id,
+      Orders.ORDER_DATE         as order_placed_at,
+      Orders.status             as order_status,
+      complete_payments.total_amount_paid,
+      complete_payments.payment_finalized_date,
+      customers.FIRST_NAME      as customer_first_name,
+      customers.LasT_NAME       as customer_last_name
     from orders
 
-    left join complete_payments p 
-        on orders.ID = p.order_id
-
-    left join customers C 
-        on orders.USER_ID = C.ID 
+    left join complete_payments
+        on orders.ID = complete_payments.order_id
+    left join customers
+        on orders.USER_ID = customers.ID 
 
 ),
 
 customer_orders as (
     select 
-      C.ID as customer_id,
+      customers.ID as customer_id,
       min(ORDER_DATE) as first_order_date,
       max(ORDER_DATE) as most_recent_order_date,
       count(ORDERS.ID) as number_of_orders
-    from customers C 
+    from customers
     left join orders
-        on orders.USER_ID = C.ID 
+        on orders.USER_ID = customers.ID 
     group by 1
 ),
 
 final as (
 
     select
-    p.*,
-    ROW_NUMBER() OVER (order by p.order_id) as transaction_seq,
-    ROW_NUMBER() OVER (partition by customer_id order by p.order_id) as customer_sales_seq,
-    case when c.first_order_date = p.order_placed_at
+    paid_orders.*,
+    ROW_NUMBER() OVER (order by paid_orders.order_id) as transaction_seq,
+    ROW_NUMBER() OVER (partition by customer_id order by paid_orders.order_id) as customer_sales_seq,
+    case when customer_orders.first_order_date = paid_orders.order_placed_at
             THEN 'new'
             ELSE 'return' 
     end as nvsr,
     sum(total_amount_paid) over (partition by paid_orders.customer_id order by paid_orders.order_placed_at) as customer_lifetime_value,
     c.first_order_date as fdos
-    from paid_orders p
-    left join customer_orders as c using (customer_id)
+    from paid_orders
+    left join customer_orders
+        on paid_orders.customer_id = customer_orders.customer_id
     order by order_id
 
 )
